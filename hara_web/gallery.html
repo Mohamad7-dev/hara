@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>معاينة صفحات حارة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Alexandria', 'Segoe UI', sans-serif;
+    background: #FBF8F3; color: #241810; padding: 24px;
+  }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1500px; margin: 0 auto 28px; flex-wrap: wrap; gap: 12px;
+  }
+  .topbar h1 { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .topbar .logo {
+    width: 36px; height: 36px; border-radius: 10px; background: #3B2A1D;
+    display: flex; align-items: center; justify-content: center;
+    color: #EDD9AE; font-size: 17px;
+  }
+  .topbar .actions { display: flex; gap: 8px; }
+  .topbar a {
+    display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px;
+    border-radius: 10px; background: #3B2A1D; color: #fff; text-decoration: none;
+    font-size: 14px; font-weight: 600; border: none; cursor: pointer;
+  }
+  .topbar a.gold { background: #A9823C; }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 28px; max-width: 1500px; margin: 0 auto;
+  }
+  .frame-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .frame-label {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .frame-label .name { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .frame-label .name i { color: #A9823C; }
+  .frame-label .open a {
+    font-size: 12px; color: #7A6A54; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .frame-label .open a:hover { color: #3B2A1D; }
+  .phone {
+    width: 100%; max-width: 380px; height: 720px; margin: 0 auto;
+    background: #fff; border: 6px solid #2C2C2C; border-radius: 34px;
+    box-shadow: 0 20px 50px rgba(40,30,20,0.2); overflow: hidden; position: relative;
+  }
+  .phone iframe { width: 100%; height: 100%; border: none; display: block; background: #F6F2EC; }
+  .phone::before {
+    content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 22px; background: #2C2C2C; border-radius: 0 0 12px 12px; z-index: 10;
+  }
+  .note {
+    max-width: 1500px; margin: 32px auto 0; font-size: 13px; color: #85755F;
+    background: #fff; border: 1px solid #E8DFD2; border-radius: 12px; padding: 14px 18px;
+    line-height: 1.9;
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1><span class="logo"><i class="ph ph-duotone ph-storefront"></i></span> معاينة شاشات حارة</h1>
+    <div class="actions">
+      <a href="index.html" target="_blank"><i class="ph ph-duotone ph-arrow-up-right"></i> فتح التطبيق</a>
+      <a href="index.html?user=admin&demo=1#admin" class="gold" target="_blank"><i class="ph ph-duotone ph-shield-check"></i> فتح كأدمن</a>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="note">
+    <i class="ph ph-duotone ph-info" style="color:#A9823C"></i>
+    هذه شاشات معاينة ببيانات تجريبية (وضع العرض). اضغط على أي اسم شاشة بالأسفل لفتحها بحجم كامل في تبويب جديد.
+    كل شاشة تظهر حسب نوع الحساب: السوق والخدمات والوظائف والطلبات كـ user1، لوحة التوصيل كموصل، ولوحة الإدارة كأدمن.
+  </div>
+<script>
+const screens = [
+  { name: 'الرئيسية', url: 'index.html?user=user1&demo=1#home', icon: 'ph-house' },
+  { name: 'السوق', url: 'index.html?user=user1&demo=1#market', icon: 'ph-shopping-bag' },
+  { name: 'تفاصيل منتج', url: 'index.html?user=user1&demo=1#product-detail', icon: 'ph-package' },
+  { name: 'البحث الشامل', url: 'index.html?user=user1&demo=1#search', icon: 'ph-magnifying-glass' },
+  { name: 'الخدمات', url: 'index.html?user=user1&demo=1#services', icon: 'ph-wrench' },
+  { name: 'الوظائف', url: 'index.html?user=user1&demo=1#jobs', icon: 'ph-briefcase' },
+  { name: 'الطلبات المنشورة', url: 'index.html?user=user1&demo=1#requests', icon: 'ph-megaphone' },
+  { name: 'نشر إعلان', url: 'index.html?user=user1&demo=1#add-product', icon: 'ph-plus-circle' },
+  { name: 'تقديم خدمة', url: 'index.html?user=user1&demo=1#new-service', icon: 'ph-toolbox' },
+  { name: 'نشر وظيفة', url: 'index.html?user=user1&demo=1#new-job', icon: 'ph-briefcase-metal' },
+  { name: 'نشر طلب', url: 'index.html?user=user1&demo=1#new-request', icon: 'ph-megaphone-simple' },
+  { name: 'السلة', url: 'index.html?user=user1&demo=1#cart', icon: 'ph-shopping-cart' },
+  { name: 'تأكيد الطلب', url: 'index.html?user=user1&demo=1#checkout', icon: 'ph-clipboard-text' },
+  { name: 'نجاح الطلب', url: 'index.html?user=user1&demo=1#order-success', icon: 'ph-check-circle' },
+  { name: 'طلباتي', url: 'index.html?user=user1&demo=1#orders', icon: 'ph-list' },
+  { name: 'الإشعارات', url: 'index.html?user=delivery&demo=1#notifications', icon: 'ph-bell' },
+  { name: 'الملف الشخصي', url: 'index.html?user=user1&demo=1#profile', icon: 'ph-user-circle' },
+  { name: 'لوحة التوصيل', url: 'index.html?user=delivery&demo=1#delivery', icon: 'ph-moped' },
+  { name: 'انضم لفريق التوصيل', url: 'index.html?user=user1&demo=1#delivery', icon: 'ph-moped-front' },
+  { name: 'لوحة الإدارة', url: 'index.html?user=admin&demo=1#admin', icon: 'ph-shield' },
+  { name: 'تسجيل الدخول', url: 'index.html#login', icon: 'ph-sign-in' },
+  { name: 'إنشاء حساب', url: 'index.html#register', icon: 'ph-user-plus' },
+];
+const grid = document.getElementById('grid');
+grid.innerHTML = screens.map((s, i) => `
+  <div class="frame-wrap">
+    <div class="frame-label">
+      <span class="name"><i class="ph ph-duotone ${s.icon}"></i> ${s.name}</span>
+      <span class="open"><a href="${s.url}" target="_blank">فتح كامل <i class="ph ph-duotone ph-arrow-up-left"></i></a></span>
+    </div>
+    <div class="phone"><iframe src="${s.url}" loading="lazy"></iframe></div>
+  </div>`).join('');
+</script>
+</body>
+</html>
+

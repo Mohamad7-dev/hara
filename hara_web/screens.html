@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة معاينة الشاشات - حارة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #14110D;
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    color: #F5EFE6;
+    padding-bottom: 60px;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(20, 17, 13, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #2A241C;
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .topbar h1 { font-size: 18px; font-weight: 700; color: #C9A86A; white-space: nowrap; }
+  .topbar .sub { font-size: 12px; color: #8C7F6E; font-weight: 400; }
+  .jumps { display: flex; gap: 6px; flex-wrap: wrap; }
+  .jumps button {
+    background: #211B14; color: #E8DCC9; border: 1px solid #322A20;
+    border-radius: 999px; padding: 5px 12px; font-size: 12px;
+    font-family: inherit; cursor: pointer; transition: background .15s;
+  }
+  .jumps button:hover { background: #2E261B; }
+  .group { max-width: 1800px; margin: 24px auto 0; padding: 0 20px; }
+  .group h2 {
+    font-size: 14px; font-weight: 600; color: #8C7F6E;
+    border-bottom: 1px solid #241E16; padding-bottom: 8px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .group h2 span { color: #C9A86A; }
+  .grid {
+    display: flex; flex-wrap: wrap; gap: 18px;
+    justify-content: flex-start;
+  }
+  .frame {
+    width: 400px; flex-shrink: 0;
+  }
+  .phone {
+    background: #000;
+    border: 2px solid #2A241C; border-radius: 34px;
+    padding: 10px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+  }
+  .phone-inner {
+    background: #FEFBF5;
+    border-radius: 24px; overflow: hidden;
+    height: 833px;
+    position: relative;
+  }
+  .phone-inner iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .frame-label {
+    margin-top: 8px; text-align: center;
+    font-size: 13px; font-weight: 600; color: #E8DCC9;
+  }
+  .frame-route { font-size: 11px; color: #6E6352; font-weight: 400; direction: ltr; }
+  .note {
+    max-width: 1800px; margin: 20px auto 0; padding: 0 20px;
+    font-size: 12px; color: #6E6352; line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>لوحة معاينة الشاشات</h1>
+  <div class="sub">حارة — كل الشاشات داخل إطارات جوال</div>
+  <div class="jumps" id="jumps"></div>
+</div>
+
+<div class="note">
+  معاينة كاملة لكل شاشات التطبيق بدقة موبايل (390×844). استخدم شريط التنقل بالأعلى للقفز السريع.
+  الأدوار: المفضلة/الرسائل/السلة/الشراء/النشر = مستخدم <b>user1</b>، لوحة التوصيل = <b>delivery</b>، لوحة الإدارة = <b>admin</b>، تسجيل الدخول = بدون دور.
+</div>
+
+<div id="groups"></div>
+
+<script>
+  const SCREENS = [
+    { g: 'التبويبات الرئيسية', items: [
+      { name: 'الرئيسية', route: 'home', user: 'user1' },
+      { name: 'المفضلة', route: 'saved', user: 'user1' },
+      { name: 'الرسائل', route: 'messages', user: 'user1' },
+      { name: 'المحادثة', route: 'chat', user: 'user1' },
+      { name: 'حسابي', route: 'profile', user: 'user1' },
+    ]},
+    { g: 'السوق والتصفح', items: [
+      { name: 'السوق', route: 'market', user: 'user1' },
+      { name: 'الخدمات', route: 'services', user: 'user1' },
+      { name: 'الوظائف', route: 'jobs', user: 'user1' },
+      { name: 'الطلبات', route: 'requests', user: 'user1' },
+    ]},
+    { g: 'الشراء', items: [
+      { name: 'السلة', route: 'cart', user: 'user1' },
+      { name: 'إتمام الطلب', route: 'checkout', user: 'user1' },
+      { name: 'نجاح الطلب', route: 'order-success', user: 'user1' },
+      { name: 'تفاصيل منتج', route: 'product-detail', user: 'user1' },
+    ]},
+    { g: 'النشر والإضافة', items: [
+      { name: 'نشر إعلان', route: 'add-product', user: 'user1' },
+      { name: 'قدّم خدمة', route: 'new-service', user: 'user1' },
+      { name: 'انشر وظيفة', route: 'new-job', user: 'user1' },
+      { name: 'انشر طلباً', route: 'new-request', user: 'user1' },
+    ]},
+    { g: 'الحساب والطلبات', items: [
+      { name: 'طلباتي', route: 'orders', user: 'user1' },
+      { name: 'الإشعارات', route: 'notifications', user: 'user1' },
+    ]},
+    { g: 'لوحات الأدوار', items: [
+      { name: 'لوحة التوصيل', route: 'delivery', user: 'delivery' },
+      { name: 'لوحة الإدارة', route: 'admin', user: 'admin' },
+    ]},
+    { g: 'الدخول', items: [
+      { name: 'تسجيل الدخول', route: 'login', user: '' },
+      { name: 'التسجيل', route: 'register', user: '' },
+    ]},
+  ];
+
+  const jumps = document.getElementById('jumps');
+  const groups = document.getElementById('groups');
+
+  SCREENS.forEach((grp, gi) => {
+    const gEl = document.createElement('div');
+    gEl.className = 'group';
+    gEl.id = 'group-' + gi;
+    const head = document.createElement('h2');
+    head.innerHTML = '<span>◈</span> ' + grp.g;
+    gEl.appendChild(head);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    grp.items.forEach(item => {
+      const route = item.route;
+      const label = document.createElement('div');
+      label.className = 'frame';
+      const phone = document.createElement('div');
+      phone.className = 'phone';
+      phone.innerHTML = '<div class="phone-inner"><iframe loading="lazy" src="index.html?demo=1&user=' + item.user + '#' + route + '" title="' + route + '"></iframe></div>';
+      const lbl = document.createElement('div');
+      lbl.className = 'frame-label';
+      lbl.innerHTML = item.name + ' <span class="frame-route">' + route + '</span>';
+      label.appendChild(phone);
+      label.appendChild(lbl);
+      grid.appendChild(label);
+      const b = document.createElement('button');
+      b.textContent = item.name;
+      b.onclick = () => {
+        document.getElementById('group-' + gi).scrollIntoView({ behavior: 'smooth' });
+      };
+      jumps.appendChild(b);
+    });
+    gEl.appendChild(grid);
+    groups.appendChild(gEl);
+  });
+</script>
+</body>
+</html>

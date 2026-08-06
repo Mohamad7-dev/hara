@@ -1,0 +1,23 @@
+# Flutter
+hara_app/.dart_tool/
+hara_app/build/
+hara_app/.flutter-plugins
+hara_app/.flutter-plugins-dependencies
+hara_app/android/local.properties
+hara_app/ios/Pods/
+hara_app/ios/.symlinks/
+hara_app/*.iml
+
+# Python
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+
+# Database (local SQLite — Render uses Postgres in production)
+hara_app/server/hara.db
+
+# Misc
+.DS_Store
+*.log
