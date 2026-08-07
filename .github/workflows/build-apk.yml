@@ -32,22 +32,23 @@ jobs:
 
       - name: Build APK
         working-directory: hara_app
-        run: flutter build apk --release --dart-define=API_BASE=https://hara-api.onrender.com
+        run: flutter build apk --release --split-per-abi --dart-define=API_BASE=https://hara-api.onrender.com
 
-      - name: Upload APK
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: hara-app-release
-          path: hara_app/build/app/outputs/flutter-apk/app-release.apk
+          path: hara_app/build/app/outputs/flutter-apk/*-release.apk
 
-      - name: Publish to Release
+      - name: Publish arm64 to Release
         env:
           GH_TOKEN: ${{ github.token }}
         working-directory: hara_app
         run: |
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk app-release-arm64.apk
           gh release create apk-latest \
-            build/app/outputs/flutter-apk/app-release.apk \
+            app-release-arm64.apk \
             --title "تطبيق حارة (أحدث نسخة)" \
             --notes "آخر نسخة من تطبيق حارة" \
             --latest \
-            || gh release upload apk-latest build/app/outputs/flutter-apk/app-release.apk --clobber
+            || gh release upload apk-latest app-release-arm64.apk --clobber
