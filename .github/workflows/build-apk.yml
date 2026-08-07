@@ -9,10 +9,13 @@ on:
       - 'hara_app/pubspec.yaml'
       - 'hara_app/pubspec.lock'
       - 'hara_app/android/**'
+      - '.github/**'
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -36,3 +39,15 @@ jobs:
         with:
           name: hara-app-release
           path: hara_app/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Publish to Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: hara_app
+        run: |
+          gh release create apk-latest \
+            build/app/outputs/flutter-apk/app-release.apk \
+            --title "تطبيق حارة (أحدث نسخة)" \
+            --notes "آخر نسخة من تطبيق حارة" \
+            --latest \
+            || gh release upload apk-latest build/app/outputs/flutter-apk/app-release.apk --clobber
