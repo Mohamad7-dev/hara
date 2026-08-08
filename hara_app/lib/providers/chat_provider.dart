@@ -36,10 +36,6 @@ class ChatProvider extends ChangeNotifier {
         .getList(_key)
         .map((m) => ChatConversation.fromMap(m))
         .toList();
-    if (_chats.isEmpty) {
-      _seedDemo();
-      await _save();
-    }
     notifyListeners();
   }
 
@@ -72,33 +68,6 @@ class ChatProvider extends ChangeNotifier {
     } on ApiException {
       // keep local
     }
-  }
-
-  void _seedDemo() {
-    final now = DateTime.now();
-    _chats = [
-      ChatConversation(
-        id: 'c1',
-        name: 'سامي عوض',
-        role: 'بائع',
-        iconKey: 'store',
-        unread: 2,
-        messages: [
-          ChatMessage(
-              from: 'me',
-              text: 'أهلاً سامي، هل الشنطة اليدوية متوفرة؟',
-              time: now.subtract(const Duration(hours: 15))),
-          ChatMessage(
-              from: 'them',
-              text: 'أهلاً بك! نعم متوفرة، باقي نسختين.',
-              time: now.subtract(const Duration(hours: 14, minutes: 35))),
-          ChatMessage(
-              from: 'them',
-              text: 'أستطيع التنازل لـ 40 شيكل إذا بتأخذ اليوم.',
-              time: now.subtract(const Duration(hours: 14, minutes: 10))),
-        ],
-      ),
-    ];
   }
 
   ChatConversation ensure(

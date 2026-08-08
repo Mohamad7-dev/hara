@@ -27,31 +27,7 @@ class NotificationsProvider extends ChangeNotifier {
       // offline fallback
     }
     _items = LocalStore.instance.getList(_key);
-    if (_items.isEmpty) {
-      _seedDemo();
-      await _save();
-    }
     notifyListeners();
-  }
-
-  void _seedDemo() {
-    final now = DateTime.now();
-    _items = [
-      {
-        'iconKey': 'order',
-        'title': 'طلب جديد',
-        'body': 'طلبك رقم #1042 أصبح قيد التوصيل',
-        'time': now.subtract(const Duration(minutes: 12)).toIso8601String(),
-        'read': false,
-      },
-      {
-        'iconKey': 'message',
-        'title': 'رسالة جديدة',
-        'body': 'سامي عوض: أهلاً بك! نعم الشنطة متوفرة.',
-        'time': now.subtract(const Duration(hours: 1)).toIso8601String(),
-        'read': false,
-      },
-    ];
   }
 
   Future<void> markAllRead() async {
