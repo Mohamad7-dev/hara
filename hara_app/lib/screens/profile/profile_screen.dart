@@ -50,6 +50,38 @@ class ProfileScreen extends StatelessWidget {
           icon: Icons.person_outline,
           title: 'حسابي',
         ),
+        if (context.read<AuthProvider>().needsProfile) ...[
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.person_add_alt_1,
+                    color: AppColors.accent, size: 22),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'أكمل بياناتك (الصورة، الاسم، رقم الجوال)',
+                    style: TextStyle(
+                        color: AppColors.textPrimary, fontSize: 13),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed('/profile-setup'),
+                  child: const Text('أكمل',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ],
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -75,14 +107,25 @@ class ProfileScreen extends StatelessWidget {
                       CircleAvatar(
                         radius: 32,
                         backgroundColor: AppColors.bg2,
-                        child: Text(
-                          user.name[0].toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 28,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        backgroundImage: (user.photo != null &&
+                                user.photo!.isNotEmpty &&
+                                user.photo!.startsWith('http'))
+                            ? NetworkImage(user.photo!)
+                            : null,
+                        child: (user.photo == null ||
+                                user.photo!.isEmpty ||
+                                !user.photo!.startsWith('http'))
+                            ? Text(
+                                user.name.isNotEmpty
+                                    ? user.name[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
                       ),
                       const SizedBox(width: 14),
                       Expanded(
