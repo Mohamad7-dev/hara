@@ -1,8 +1,12 @@
+import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../config/colors.dart';
 import '../../config/constants.dart';
 import '../../config/locations.dart';
+import '../../services/api_client.dart';
 import '../../services/payment_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
@@ -911,6 +915,65 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String _category = 'طعام';
   bool _featured = false;
   bool _paying = false;
+  bool _uploading = false;
+  final List<String> _pickedImages = [];
+
+  Future<void> _pickImages() async {
+    final files = await ImagePicker().pickMultiImage();
+    if (files.isEmpty) return;
+    for (final f in files.take(5 - _pickedImages.length)) {
+      final dataUrl = await _compressImage(f);
+      if (dataUrl != null && mounted) {
+        setState(() => _pickedImages.add(dataUrl));
+      }
+    }
+  }
+
+  Future<String?> _compressImage(XFile file) async {
+    final bytes = await file.readAsBytes();
+    if (bytes.length < 900 * 1024) {
+      return 'data:${file.mimeType ?? 'image/jpeg'};base64,${base64Encode(bytes)}';
+    }
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final img = frame.image;
+    const maxDim = 900.0;
+    var w = img.width.toDouble();
+    var h = img.height.toDouble();
+    if (w > maxDim || h > maxDim) {
+      final sc = maxDim / (w > h ? w : h);
+      w = (w * sc).roundToDouble();
+      h = (h * sc).roundToDouble();
+    }
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.drawImageRect(
+      img,
+      ui.Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()),
+      ui.Rect.fromLTWH(0, 0, w, h),
+      ui.Paint(),
+    );
+    final picture = recorder.endRecording();
+    final resized = await picture.toImage(w.round(), h.round());
+    final data = await resized.toByteData(format: ui.ImageByteFormat.png);
+    img.dispose();
+    resized.dispose();
+    if (data == null) return null;
+    return 'data:image/png;base64,${base64Encode(data.buffer.asUint8List())}';
+  }
+
+  Future<List<String>> _uploadImages() async {
+    final urls = <String>[];
+    for (final dataUrl in _pickedImages) {
+      try {
+        final up = await ApiClient.instance.post('api/media', {'base64': dataUrl});
+        urls.add(up['url'] as String);
+      } on ApiException {
+        // تجاهل الصور التي تفشل في الرفع
+      }
+    }
+    return urls;
+  }
 
   @override
   void dispose() {
@@ -935,6 +998,78 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 TextFormField(controller: _title, decoration: const InputDecoration(labelText: 'اسم المنتج'), validator: (v) => v == null || v.isEmpty ? 'required' : null),
                 const SizedBox(height: 16),
                 TextFormField(controller: _description, maxLines: 3, decoration: const InputDecoration(labelText: 'الوصف'), validator: (v) => v == null || v.isEmpty ? 'required' : null),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.bg2,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'صور المنتج (اختياري)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (_pickedImages.isNotEmpty) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (var i = 0; i < _pickedImages.length; i++)
+                              Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.memory(
+                                      base64Decode(
+                                          _pickedImages[i].split(',').last),
+                                      width: 76,
+                                      height: 76,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -6,
+                                    right: -6,
+                                    child: GestureDetector(
+                                      onTap: () => setState(() =>
+                                          _pickedImages.removeAt(i)),
+                                      child: Container(
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.error,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        padding: const EdgeInsets.all(2),
+                                        child: const Icon(Icons.close,
+                                            size: 14, color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      if (_pickedImages.length < 5)
+                        OutlinedButton.icon(
+                          onPressed: _pickImages,
+                          icon: const Icon(Icons.add_photo_alternate_outlined),
+                          label: Text(
+                              _pickedImages.isEmpty ? 'إضافة صور' : 'إضافة المزيد'),
+                        ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 TextFormField(controller: _price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'السعر (شيكل)'), validator: (v) => v == null || v.isEmpty ? 'required' : null),
                 const SizedBox(height: 16),
@@ -993,7 +1128,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 SizedBox(
                   width: double.infinity, height: 50,
                   child: ElevatedButton(
-                    onPressed: _paying
+                    onPressed: _paying || _uploading
                         ? null
                         : () async {
                             if (_form.currentState!.validate()) {
@@ -1013,6 +1148,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   return;
                                 }
                               }
+                              setState(() => _uploading = true);
+                              final images = await _uploadImages();
+                              if (!mounted) return;
+                              setState(() => _uploading = false);
                               final product = ProductModel(
                                 id: '',
                                 sellerId: context.read<AuthProvider>().currentUser!.uid,
@@ -1021,7 +1160,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 description: _description.text,
                                 price: double.parse(_price.text),
                                 category: _category,
-                                images: [],
+                                images: images,
                                 stock: int.parse(_stock.text),
                                 featured: _featured,
                               );
@@ -1038,7 +1177,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               Navigator.of(context).pop();
                             }
                           },
-                    child: _paying
+                    child: _paying || _uploading
                         ? const SizedBox(
                             width: 22,
                             height: 22,

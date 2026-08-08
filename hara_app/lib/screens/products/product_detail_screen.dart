@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/colors.dart';
@@ -9,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/favorites_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../services/api_client.dart';
 import '../../utils/format.dart';
 import '../../widgets/comments_sheet.dart';
 import '../../widgets/comment_replies.dart';
@@ -49,9 +51,7 @@ class ProductDetailScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.secondary.withOpacity(0.2),
               ),
-              child: Center(
-                child: Icon(Icons.image_outlined, size: 80, color: AppColors.primary.withOpacity(0.3)),
-              ),
+              child: _headerImage,
             ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -277,6 +277,30 @@ class ProductDetailScreen extends StatelessWidget {
         ),
     );
   }
+
+  Widget get _headerImage {
+    if (product.images.isNotEmpty) {
+      final src = product.images.first;
+      if (src.startsWith('data:')) {
+        return Image.memory(
+          base64Decode(src.split(',').last),
+          fit: BoxFit.cover,
+        );
+      }
+      return Image.network(
+        '${ApiClient.instance.baseUrl}$src',
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) =>
+            _headerPlaceholder,
+      );
+    }
+    return _headerPlaceholder;
+  }
+
+  Widget get _headerPlaceholder => Center(
+        child: Icon(Icons.image_outlined,
+            size: 80, color: AppColors.primary.withOpacity(0.3)),
+      );
 
   Widget _addReviewButton(BuildContext context) {
     return SizedBox(

@@ -1,14 +1,53 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/colors.dart';
 import '../models/product_model.dart';
 import '../providers/favorites_provider.dart';
+import '../services/api_client.dart';
 
 class ProductCard extends StatelessWidget {
   final ProductModel product;
   final VoidCallback onTap;
 
   const ProductCard({super.key, required this.product, required this.onTap});
+
+  Widget get _image {
+    if (product.images.isNotEmpty) {
+      final src = product.images.first;
+      if (src.startsWith('data:')) {
+        return Image.memory(
+          base64Decode(src.split(',').last),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder,
+        );
+      }
+      return Image.network(
+        '${ApiClient.instance.baseUrl}$src',
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder,
+      );
+    }
+    return _placeholder;
+  }
+
+  Widget get _placeholder => Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.accentLight.withValues(alpha: 0.55),
+              AppColors.bg2.withValues(alpha: 0.6),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Icon(Icons.image_outlined,
+              size: 46,
+              color: AppColors.primary.withValues(alpha: 0.28)),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -35,24 +74,10 @@ class ProductCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.accentLight.withValues(alpha: 0.55),
-                          AppColors.bg2.withValues(alpha: 0.6),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: Center(
-                      child: Icon(Icons.image_outlined,
-                          size: 46,
-                          color: AppColors.primary.withValues(alpha: 0.28)),
-                    ),
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: _image,
                   ),
                   Positioned(
                     top: 8,
