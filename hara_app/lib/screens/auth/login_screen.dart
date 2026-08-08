@@ -42,6 +42,14 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  Future<void> _googleLogin() async {
+    final ok = await context.read<AuthProvider>().googleLogin();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -172,6 +180,47 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      if (AuthProvider.googleClientId.isNotEmpty) ...[
+                        Row(
+                          children: [
+                            const Expanded(
+                                child: Divider(color: AppColors.border)),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'أو',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const Expanded(
+                                child: Divider(color: AppColors.border)),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Consumer<AuthProvider>(
+                          builder: (context, auth, _) => SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: OutlinedButton.icon(
+                              onPressed:
+                                  auth.isLoading ? null : _googleLogin,
+                              icon: const Icon(Icons.g_mobiledata, size: 30),
+                              label: const Text(
+                                'الدخول بحساب جوجل',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 14),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../services/api_client.dart';
 import '../services/local_store.dart';
@@ -188,6 +189,57 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
     return true;
+  }
+
+  static const String googleClientId = String.fromEnvironment('GOOGLE_CLIENT_ID');
+
+  Future<bool> googleLogin() async {
+    if (googleClientId.isEmpty) {
+      _error = 'تسجيل الدخول عبر جوجل غير مفعّل حالياً';
+      notifyListeners();
+      return false;
+    }
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final google = GoogleSignIn(clientId: googleClientId);
+      final account = await google.signIn();
+      if (account == null) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      final googleAuth = await account.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null) {
+        _error = 'تعذر الحصول على بيانات جوجل';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      final res = await ApiClient.instance
+          .post('api/auth/google', {'idToken': idToken});
+      ApiClient.instance.token = res['token'] as String;
+      await _saveToken();
+      final u = res['user'] as Map<String, dynamic>;
+      _currentUser = UserModel.fromMap(u, u['uid'] ?? '');
+      await _saveSession();
+      _online = true;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _error = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _error = 'تعذر تسجيل الدخول عبر جوجل';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> register({

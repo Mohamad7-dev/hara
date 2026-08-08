@@ -30,13 +30,37 @@ jobs:
           flutter-version: '3.44.7'
           cache: true
 
+      - name: Decode signing keystore
+        id: keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p keystore
+            echo "$KEYSTORE_B64" | base64 -d > keystore/hara-release.jks
+            echo "store_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No ANDROID_KEYSTORE_B64 secret set — building with debug signing."
+            echo "store_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build split APKs
         working-directory: hara_app
-        run: flutter build apk --release --split-per-abi --dart-define=API_BASE=https://hara-api.onrender.com
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.store_ok == 'true' && format('{0}/keystore/hara-release.jks', github.workspace) || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: flutter build apk --release --split-per-abi --dart-define=API_BASE=https://hara-api.onrender.com --dart-define=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
       - name: Build universal APK
         working-directory: hara_app
-        run: flutter build apk --release --dart-define=API_BASE=https://hara-api.onrender.com
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.store_ok == 'true' && format('{0}/keystore/hara-release.jks', github.workspace) || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: flutter build apk --release --dart-define=API_BASE=https://hara-api.onrender.com --dart-define=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4

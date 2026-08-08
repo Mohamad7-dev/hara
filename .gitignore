@@ -1,3 +1,6 @@
+# Signing keys (never commit)
+keystore/
+
 # Flutter
 hara_app/.dart_tool/
 hara_app/build/

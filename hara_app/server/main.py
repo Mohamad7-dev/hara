@@ -35,6 +35,8 @@ PALPAY_CALLBACK = os.getenv("PALPAY_CALLBACK", "").strip()
 
 WEBHOOK_PATH = os.getenv("WEBHOOK_PATH", "/api/payments/webhook").strip()
 
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+
 app = FastAPI(title="Hara API")
 
 app.add_middleware(
@@ -279,6 +281,10 @@ class RegisterIn(BaseModel):
 class LoginIn(BaseModel):
     email: str
     password: str
+
+
+class GoogleAuthIn(BaseModel):
+    idToken: str
 
 
 class ProfileIn(BaseModel):
@@ -598,6 +604,45 @@ def login(body: LoginIn):
     if row is None or not _verify_password(body.password, row["password"]):
         conn.close()
         raise HTTPException(status_code=401, detail="البريد الإلكتروني أو كلمة المرور غير صحيحة")
+    token = uuid.uuid4().hex
+    conn.execute("INSERT INTO tokens (token, uid) VALUES (?,?)", (token, row["uid"]))
+    conn.commit()
+    conn.close()
+    return {"token": token, "user": _user_json(row)}
+
+
+@app.post("/api/auth/google")
+def google_auth(body: GoogleAuthIn):
+    try:
+        r = requests.get(
+            "https://oauth2.googleapis.com/tokeninfo",
+            params={"id_token": body.idToken},
+            timeout=10,
+        )
+    except Exception:
+        raise HTTPException(status_code=502, detail="تعذر الاتصال بجوجل")
+    if r.status_code != 200:
+        raise HTTPException(status_code=401, detail="توكن جوجل غير صالح")
+    info = r.json()
+    if GOOGLE_CLIENT_ID and info.get("aud") != GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=401, detail="توكن جوجل غير صالح")
+    if info.get("email_verified") is not True:
+        raise HTTPException(status_code=401, detail="البريد الإلكتروني غير موثق")
+    email = info.get("email")
+    sub = info.get("sub")
+    name = info.get("name") or (email or "").split("@")[0]
+    if not email or not sub:
+        raise HTTPException(status_code=401, detail="توكن جوجل غير صالح")
+
+    conn = db()
+    row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    if row is None:
+        uid = "g" + hashlib.sha256(sub.encode()).hexdigest()[:12]
+        conn.execute(
+            "INSERT INTO users (uid, email, password, name, phone, address, user_type, created_at) VALUES (?,?,?,?,?,?,?,?)",
+            (uid, email, _hash_password(secrets.token_urlsafe(16)), name, "", "", "regular", utcnow()),
+        )
+        row = conn.execute("SELECT * FROM users WHERE uid = ?", (uid,)).fetchone()
     token = uuid.uuid4().hex
     conn.execute("INSERT INTO tokens (token, uid) VALUES (?,?)", (token, row["uid"]))
     conn.commit()
