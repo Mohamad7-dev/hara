@@ -87,8 +87,11 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 2900));
     if (!mounted) return;
     final auth = context.read<AuthProvider>();
-    if (auth.currentUser != null) {
+    final u = auth.currentUser;
+    if (u != null && !auth.needsProfile) {
       Navigator.of(context).pushReplacementNamed('/home');
+    } else if (u != null && auth.needsProfile) {
+      Navigator.of(context).pushReplacementNamed('/profile-setup');
     } else {
       Navigator.of(context).pushReplacementNamed('/login');
     }

@@ -13,7 +13,9 @@ import 'providers/favorites_provider.dart';
 import 'providers/notifications_provider.dart';
 import 'services/local_store.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/profile_setup_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,13 +48,14 @@ class HaraApp extends StatelessWidget {
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const HomeScreen(),
+        home: const SplashScreen(),
         builder: (context, child) => Directionality(
           textDirection: TextDirection.rtl,
           child: child!,
         ),
         routes: {
           '/login': (_) => const LoginScreen(),
+          '/profile-setup': (_) => const ProfileSetupScreen(),
           '/home': (_) => const HomeScreen(),
         },
       ),

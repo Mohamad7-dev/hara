@@ -6,6 +6,7 @@ class UserModel {
   final String address;
   final String? area;
   final String userType;
+  final String? photo;
   final String? storeName;
   final String? storeDescription;
   final double? deliveryFee;
@@ -24,6 +25,7 @@ class UserModel {
     required this.address,
     this.area,
     required this.userType,
+    this.photo,
     this.storeName,
     this.storeDescription,
     this.deliveryFee,
@@ -43,6 +45,7 @@ class UserModel {
     'address': address,
     'area': area,
     'userType': userType,
+    'photo': photo,
     'storeName': storeName,
     'storeDescription': storeDescription,
     'deliveryFee': deliveryFee,
@@ -62,6 +65,7 @@ class UserModel {
     address: map['address'] ?? '',
     area: map['area'],
     userType: map['userType'] ?? 'buyer',
+    photo: map['photo'],
     storeName: map['storeName'],
     storeDescription: map['storeDescription'],
     deliveryFee: (map['deliveryFee'] as num?)?.toDouble(),

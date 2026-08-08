@@ -72,6 +72,7 @@ def init_db():
             phone TEXT NOT NULL DEFAULT '',
             address TEXT NOT NULL DEFAULT '',
             area TEXT,
+            photo TEXT,
             user_type TEXT NOT NULL DEFAULT 'regular',
             store_name TEXT,
             store_description TEXT,
@@ -200,6 +201,11 @@ def init_db():
             conn.commit()
         except sqlite3.OperationalError:
             pass
+    try:
+        conn.execute("ALTER TABLE users ADD COLUMN photo TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
     conn.close()
 
 
@@ -229,6 +235,7 @@ def _user_json(row: sqlite3.Row) -> dict:
         "phone": row["phone"],
         "address": row["address"],
         "area": row["area"],
+        "photo": row["photo"],
         "userType": row["user_type"],
         "storeName": row["store_name"],
         "storeDescription": row["store_description"],
@@ -285,9 +292,13 @@ class LoginIn(BaseModel):
 
 class GoogleAuthIn(BaseModel):
     idToken: str
+    photo: Optional[str] = None
 
 
 class ProfileIn(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    photo: Optional[str] = None
     area: Optional[str] = None
     deliveryAreas: Optional[List[str]] = None
     deliveryFee: Optional[float] = None
@@ -538,32 +549,11 @@ def _open_conversation(conn: sqlite3.Connection, me: str, peer: sqlite3.Row):
 
 
 # ---------------------------------------------------------------- seed
+# لا يتم إنشاء أي حسابات أو محتوى تجريبي. كل المستخدمين ينشؤون عبر تسجيل
+# الدخول بحساب جوجل فقط.
 
 def _seed():
-    conn = db()
-    count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    if count > 0:
-        conn.close()
-        return
-    now = utcnow()
-    demo_users = [
-        ("admin1", "admin@hara.ps", "الإدارة", "0599000000", "رام الله", None, "admin", None, None, None),
-        ("user1", "user1@hara.ps", "محمد أبو أحمد", "0599000001", "الخليل - عسكر", None, "regular", None, None, None),
-        ("user2", "user2@hara.ps", "سامي عوض", "0599000003", "نابلس - رفيديا", None, "regular", None, None, None),
-        ("delivery1", "delivery@hara.ps", "خالد حسن", "0599000002", "رام الله - البيرة", None, "delivery", 7.0, '["البيرة", "الماصيون"]', "دراجة"),
-        ("delivery2", "kamal@hara.ps", "كمال سرحان", "0599000004", "رام الله", None, "delivery", 5.0, '["البيرة", "رام الله"]', "سيارة"),
-        ("delivery3", "nabil@hara.ps", "نبيل عودة", "0599000005", "الخليل", None, "delivery", 6.0, '["الخليل"]', "دراجة نارية"),
-        ("delivery4", "akram@hara.ps", "أكرم حمدان", "0599000006", "نابلس", None, "delivery", 8.0, '["نابلس", "رام الله"]', "شاحنة صغيرة"),
-    ]
-    for (uid, email, name, phone, address, area, ut, fee, areas, vehicle) in demo_users:
-        conn.execute(
-            "INSERT INTO users (uid, email, password, name, phone, address, area, user_type, delivery_fee, delivery_areas, vehicle_type, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-            (uid, email, _hash_password("123456"), name, phone, address, area, ut, fee, areas, vehicle, now),
-        )
-
-
-    conn.commit()
-    conn.close()
+    return
 
 
 # ---------------------------------------------------------------- auth endpoints
@@ -631,6 +621,7 @@ def google_auth(body: GoogleAuthIn):
     email = info.get("email")
     sub = info.get("sub")
     name = info.get("name") or (email or "").split("@")[0]
+    photo = body.photo or info.get("picture")
     if not email or not sub:
         raise HTTPException(status_code=401, detail="توكن جوجل غير صالح")
 
@@ -639,10 +630,13 @@ def google_auth(body: GoogleAuthIn):
     if row is None:
         uid = "g" + hashlib.sha256(sub.encode()).hexdigest()[:12]
         conn.execute(
-            "INSERT INTO users (uid, email, password, name, phone, address, user_type, created_at) VALUES (?,?,?,?,?,?,?,?)",
-            (uid, email, _hash_password(secrets.token_urlsafe(16)), name, "", "", "regular", utcnow()),
+            "INSERT INTO users (uid, email, password, name, phone, address, photo, user_type, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            (uid, email, _hash_password(secrets.token_urlsafe(16)), name, "", "", photo, "regular", utcnow()),
         )
         row = conn.execute("SELECT * FROM users WHERE uid = ?", (uid,)).fetchone()
+    elif photo and not row["photo"]:
+        conn.execute("UPDATE users SET photo = ?, name = ? WHERE uid = ?", (photo, name, row["uid"]))
+        row = conn.execute("SELECT * FROM users WHERE uid = ?", (row["uid"],)).fetchone()
     token = uuid.uuid4().hex
     conn.execute("INSERT INTO tokens (token, uid) VALUES (?,?)", (token, row["uid"]))
     conn.commit()
@@ -660,6 +654,12 @@ def update_profile(body: ProfileIn, user: sqlite3.Row = Depends(_require_user)):
     conn = db()
     fields = []
     vals = []
+    if body.name is not None:
+        fields.append("name = ?"); vals.append(body.name)
+    if body.phone is not None:
+        fields.append("phone = ?"); vals.append(body.phone)
+    if body.photo is not None:
+        fields.append("photo = ?"); vals.append(body.photo)
     if body.area is not None:
         fields.append("area = ?"); vals.append(body.area)
     if body.deliveryAreas is not None:
