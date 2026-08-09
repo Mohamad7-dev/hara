@@ -1,29 +1,42 @@
 class ChatMessage {
+  final String id;
   final String from; // 'me' | 'them'
   final String text;
   final String? img;
+  final String? audio;
+  final bool read;
   final DateTime time;
 
   ChatMessage({
+    this.id = '',
     required this.from,
     this.text = '',
     this.img,
+    this.audio,
+    this.read = false,
     DateTime? time,
   }) : time = time ?? DateTime.now();
 
   bool get isMine => from == 'me';
+  bool get isAudio => audio != null && audio!.isNotEmpty;
 
   Map<String, dynamic> toMap() => {
+        'id': id,
         'from': from,
         'text': text,
         'img': img,
+        'audio': audio,
+        'read': read,
         'time': time.toIso8601String(),
       };
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) => ChatMessage(
+        id: map['id'] ?? '',
         from: map['from'] ?? 'them',
         text: map['text'] ?? '',
         img: map['img'],
+        audio: map['audio'],
+        read: map['read'] ?? false,
         time: map['time'] != null
             ? DateTime.parse(map['time'].toString())
             : DateTime.now(),
@@ -33,6 +46,7 @@ class ChatMessage {
 class ChatConversation {
   final String id;
   final String name;
+  final String? photo;
   final String role;
   final String iconKey;
   int unread;
@@ -41,6 +55,7 @@ class ChatConversation {
   ChatConversation({
     required this.id,
     required this.name,
+    this.photo,
     this.role = '',
     this.iconKey = 'person',
     this.unread = 0,
@@ -56,6 +71,7 @@ class ChatConversation {
   Map<String, dynamic> toMap() => {
         'id': id,
         'name': name,
+        'photo': photo,
         'role': role,
         'iconKey': iconKey,
         'unread': unread,
@@ -65,6 +81,7 @@ class ChatConversation {
   factory ChatConversation.fromMap(Map<String, dynamic> map) => ChatConversation(
         id: map['id'] ?? '',
         name: map['name'] ?? '',
+        photo: map['photo'],
         role: map['role'] ?? '',
         iconKey: map['iconKey'] ?? 'person',
         unread: (map['unread'] as num?)?.toInt() ?? 0,

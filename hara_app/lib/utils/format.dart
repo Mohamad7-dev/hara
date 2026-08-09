@@ -18,6 +18,12 @@ String chatTime(DateTime d) {
   return '${d.day}/${d.month}/${d.year}';
 }
 
+String formatDuration(Duration d) {
+  final m = d.inMinutes.toString().padLeft(2, '0');
+  final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+  return '$m:$s';
+}
+
 IconData chatIcon(String iconKey) {
   switch (iconKey) {
     case 'store':

@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
+import 'package:record/record.dart';
 
 import '../../config/colors.dart';
 import '../../models/chat_model.dart';
@@ -24,9 +27,17 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
-  Timer? _replyTimer;
+  final _audioRecorder = AudioRecorder();
+  final _audioPlayer = AudioPlayer();
+  final Map<String, Duration> _durations = {};
+
   Timer? _pollTimer;
-  int _lastCount = 0;
+  Timer? _recTimer;
+  bool _recording = false;
+  String _recPath = '';
+  int _recSeconds = 0;
+  String? _playingId;
+  bool _paused = false;
 
   @override
   void initState() {
@@ -36,19 +47,35 @@ class _ChatScreenState extends State<ChatScreen> {
     });
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
       final chat = context.read<ChatProvider>();
-      final before = chat.byName(widget.name)?.messages.length ?? _lastCount;
+      final before = chat.byName(widget.name)?.messages.length ?? 0;
       await chat.refreshConversation(widget.name);
       final after = chat.byName(widget.name)?.messages.length ?? 0;
       if (after > before) _scrollToBottom();
+    });
+    _audioPlayer.durationStream.listen((d) {
+      final id = _playingId;
+      if (id != null && d != null) {
+        _durations[id] = d;
+      }
+    });
+    _audioPlayer.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed && mounted) {
+        setState(() {
+          _playingId = null;
+          _paused = false;
+        });
+      }
     });
   }
 
   @override
   void dispose() {
-    _replyTimer?.cancel();
     _pollTimer?.cancel();
+    _recTimer?.cancel();
     _input.dispose();
     _scroll.dispose();
+    _audioRecorder.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -69,18 +96,14 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty) return;
     _input.clear();
     await context.read<ChatProvider>().send(widget.name, text: text);
-    if (!context.read<ChatProvider>().online) {
-      _scheduleReply(withImage: false);
-    }
+    _scrollToBottom();
   }
 
   Future<void> _sendImage() async {
     final dataUrl = await _pickCompressedImage();
     if (dataUrl == null || !mounted) return;
     await context.read<ChatProvider>().send(widget.name, img: dataUrl);
-    if (!context.read<ChatProvider>().online) {
-      _scheduleReply(withImage: true);
-    }
+    _scrollToBottom();
   }
 
   Future<String?> _pickCompressedImage() async {
@@ -120,15 +143,107 @@ class _ChatScreenState extends State<ChatScreen> {
     return 'data:image/png;base64,${base64Encode(data.buffer.asUint8List())}';
   }
 
-  void _scheduleReply({required bool withImage}) {
-    _replyTimer?.cancel();
-    final chat = context.read<ChatProvider>();
-    _replyTimer = Timer(const Duration(milliseconds: 1500), () async {
+  // ---------------- التسجيل الصوتي ----------------
+
+  Future<void> _toggleRecording() async {
+    if (_recording) {
+      await _stopAndSendAudio();
+    } else {
+      await _startRecording();
+    }
+  }
+
+  Future<void> _startRecording() async {
+    final hasPerm = await _audioRecorder.hasPermission();
+    if (!hasPerm) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('إذن المايك مطلوب لإرسال رسالة صوتية')),
+        );
+      }
+      return;
+    }
+    final dir = await Directory.systemTemp.createTemp('hara_voice');
+    _recPath =
+        '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    try {
+      await _audioRecorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+        path: _recPath,
+      );
       if (!mounted) return;
-      await chat.receive(widget.name, chat.randomReply(withImage: withImage));
-      _scrollToBottom();
-    });
+      setState(() {
+        _recording = true;
+        _recSeconds = 0;
+      });
+      _recTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() => _recSeconds++);
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر بدء التسجيل')),
+        );
+      }
+    }
+  }
+
+  Future<void> _stopAndSendAudio() async {
+    _recTimer?.cancel();
+    final path = _recPath;
+    if (mounted) setState(() => _recording = false);
+    if (path.isEmpty || !await File(path).exists()) return;
+    final bytes = await File(path).readAsBytes();
+    try {
+      await File(path).delete();
+    } catch (_) {}
+    if (bytes.isEmpty || !mounted) return;
+    final dataUrl = 'data:audio/m4a;base64,${base64Encode(bytes)}';
+    await context.read<ChatProvider>().send(widget.name, audio: dataUrl);
     _scrollToBottom();
+  }
+
+  // ---------------- تشغيل الصوت ----------------
+
+  Future<void> _togglePlay(ChatMessage m) async {
+    final audio = m.audio;
+    if (audio == null || audio.isEmpty) return;
+    if (_playingId == m.id && !_paused) {
+      await _audioPlayer.pause();
+      if (mounted) setState(() => _paused = true);
+      return;
+    }
+    if (_playingId == m.id && _paused) {
+      await _audioPlayer.play();
+      if (mounted) setState(() => _paused = false);
+      return;
+    }
+    await _audioPlayer.stop();
+    if (mounted) {
+      setState(() {
+        _playingId = m.id;
+        _paused = false;
+      });
+    }
+    final src = audio;
+    final url = src.startsWith('http')
+        ? src
+        : '${ApiClient.instance.baseUrl}$src';
+    try {
+      await _audioPlayer.setUrl(url);
+      if (mounted) {
+        _durations[m.id] = _audioPlayer.duration ?? Duration.zero;
+        setState(() {});
+      }
+      await _audioPlayer.play();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _playingId = null;
+          _paused = false;
+        });
+      }
+    }
   }
 
   void _viewImage(String src) {
@@ -177,16 +292,7 @@ class _ChatScreenState extends State<ChatScreen> {
         titleSpacing: 0,
         title: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.bg2,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(chatIcon(conv?.iconKey ?? 'person'),
-                  color: AppColors.primary, size: 20),
-            ),
+            _peerAvatar(conv),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -235,16 +341,52 @@ class _ChatScreenState extends State<ChatScreen> {
                         _bubble(messages[i]),
                   ),
           ),
+          _recordingPanel(),
           _composer(),
         ],
       ),
     );
   }
 
+  Widget _peerAvatar(ChatConversation? conv) {
+    final photo = conv?.photo;
+    if (photo != null && photo.isNotEmpty && photo.startsWith('http')) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.bg2,
+          shape: BoxShape.circle,
+        ),
+        child: ClipOval(
+          child: Image.network(
+            photo,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _avatarFallback(conv),
+          ),
+        ),
+      );
+    }
+    return _avatarFallback(conv);
+  }
+
+  Widget _avatarFallback(ChatConversation? conv) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.bg2,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(chatIcon(conv?.iconKey ?? 'person'),
+          color: AppColors.primary, size: 20),
+    );
+  }
+
   Widget _bubble(ChatMessage m) {
     final mine = m.isMine;
     return Align(
-      alignment: mine ? Alignment.centerLeft : Alignment.centerRight,
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: m.img == null
@@ -258,8 +400,8 @@ class _ChatScreenState extends State<ChatScreen> {
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(mine ? 5 : 16),
-            bottomRight: Radius.circular(mine ? 16 : 5),
+            bottomLeft: Radius.circular(mine ? 16 : 5),
+            bottomRight: Radius.circular(mine ? 5 : 16),
           ),
           boxShadow: [
             BoxShadow(
@@ -271,6 +413,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (m.img != null)
               GestureDetector(
@@ -295,6 +438,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                 ),
               ),
+            if (m.img != null && m.text.isNotEmpty)
+              const SizedBox(height: 6),
+            if (m.isAudio) _audioBubble(m, mine),
             if (m.text.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
@@ -307,17 +453,120 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
               ),
-            Text(
-              chatTime(m.time),
-              style: TextStyle(
-                fontSize: 10,
-                color: mine
-                    ? Colors.white.withValues(alpha: 0.7)
-                    : AppColors.textMuted,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  chatTime(m.time),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: mine
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : AppColors.textMuted,
+                  ),
+                ),
+                if (mine) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    m.read ? Icons.done_all : Icons.done,
+                    size: 13,
+                    color: m.read
+                        ? const Color(0xFF9BE1F0)
+                        : Colors.white.withValues(alpha: 0.6),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _audioBubble(ChatMessage m, bool mine) {
+    final playing = _playingId == m.id && !_paused;
+    final duration = _durations[m.id];
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () => _togglePlay(m),
+          borderRadius: BorderRadius.circular(30),
+          child: Icon(
+            playing
+                ? Icons.pause_circle_filled
+                : Icons.play_circle_fill_rounded,
+            size: 36,
+            color: mine ? Colors.white : AppColors.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 96,
+          child: StreamBuilder<Duration>(
+            stream: _audioPlayer.positionStream,
+            builder: (context, snap) {
+              final d = duration ?? const Duration(seconds: 1);
+              final pos = (_playingId == m.id)
+                  ? (snap.data ?? Duration.zero)
+                  : Duration.zero;
+              final progress = d.inMilliseconds <= 0
+                  ? 0.0
+                  : (pos.inMilliseconds / d.inMilliseconds).clamp(0.0, 1.0);
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 4,
+                  backgroundColor:
+                      mine ? Colors.white24 : AppColors.bg2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      mine ? Colors.white : AppColors.accent),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          duration == null ? '🎤' : formatDuration(duration),
+          style: TextStyle(
+            fontSize: 11,
+            color: mine ? Colors.white.withValues(alpha: 0.85) : AppColors.textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _recordingPanel() {
+    if (!_recording) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFEBEE),
+        border: Border(top: BorderSide(color: Color(0xFFF5C6CB))),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.graphic_eq,
+              color: Colors.red.shade700, size: 22),
+          const SizedBox(width: 10),
+          Text(
+            'تسجيل: ${formatDuration(Duration(seconds: _recSeconds))}',
+            style: TextStyle(
+              color: Colors.red.shade700,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            'اضغط زر المايك للإيقاف والإرسال',
+            style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -365,6 +614,26 @@ class _ChatScreenState extends State<ChatScreen> {
                   borderRadius: BorderRadius.circular(22),
                   borderSide: BorderSide.none,
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: _toggleRecording,
+            borderRadius: BorderRadius.circular(50),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: _recording
+                    ? Colors.red.shade600
+                    : AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _recording ? Icons.stop_rounded : Icons.mic_rounded,
+                color: Colors.white,
+                size: 21,
               ),
             ),
           ),

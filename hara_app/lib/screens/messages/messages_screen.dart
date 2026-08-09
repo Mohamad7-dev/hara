@@ -92,6 +92,41 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
+  Widget _avatar(conv) {
+    final photo = conv.photo;
+    if (photo != null && photo.isNotEmpty && photo.startsWith('http')) {
+      return Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.bg2,
+          shape: BoxShape.circle,
+        ),
+        child: ClipOval(
+          child: Image.network(
+            photo,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _avatarFallback(conv),
+          ),
+        ),
+      );
+    }
+    return _avatarFallback(conv);
+  }
+
+  Widget _avatarFallback(conv) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppColors.bg2,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(chatIcon(conv.iconKey),
+          color: AppColors.primary, size: 22),
+    );
+  }
+
   Widget _emptyState(BuildContext context) {
     return Center(
       child: Padding(
@@ -124,13 +159,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   Widget _convRow(BuildContext context, conv) {
     final lm = conv.lastMessage;
-    final preview = lm == null
-        ? 'لا توجد رسائل بعد'
-        : lm.isMine
-            ? 'أنت: ${lm.text.isEmpty ? '📷 صورة' : lm.text}'
-            : lm.text.isEmpty
-                ? '📷 صورة'
-                : lm.text;
+    final String preview;
+    if (lm == null) {
+      preview = 'لا توجد رسائل بعد';
+    } else if (lm.isAudio) {
+      preview = lm.isMine ? 'أنت: رسالة صوتية 🎤' : 'رسالة صوتية 🎤';
+    } else if (lm.isMine) {
+      preview = 'أنت: ${lm.text.isEmpty ? '📷 صورة' : lm.text}';
+    } else {
+      preview = lm.text.isEmpty ? '📷 صورة' : lm.text;
+    }
     return InkWell(
       onTap: () {
         context.read<ChatProvider>().markRead(conv.name);
@@ -142,16 +180,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.bg2,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(chatIcon(conv.iconKey),
-                  color: AppColors.primary, size: 22),
-            ),
+            _avatar(conv),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

@@ -153,9 +153,20 @@ class ChatProvider extends ChangeNotifier {
     String name, {
     String text = '',
     String? img,
+    String? audio,
   }) async {
+    String? audioPayload = audio;
+    if (audio != null && audio.startsWith('data:')) {
+      try {
+        final up = await ApiClient.instance.post('api/media', {'base64': audio});
+        audioPayload = up['url'] as String;
+      } on ApiException {
+        audioPayload = audio;
+      }
+    }
     final conv = ensure(name);
-    conv.messages.add(ChatMessage(from: 'me', text: text, img: img));
+    conv.messages
+        .add(ChatMessage(from: 'me', text: text, img: img, audio: audioPayload));
     notifyListeners();
     try {
       final opened = await ApiClient.instance.post('api/chats/open', {'peerName': name});
@@ -172,6 +183,7 @@ class ChatProvider extends ChangeNotifier {
       await ApiClient.instance.post('api/chats/$peerUid/messages', {
         'text': text,
         'img': imgPayload,
+        'audio': audioPayload,
       });
       _online = true;
       await refreshConversation(name);
@@ -180,35 +192,6 @@ class ChatProvider extends ChangeNotifier {
       await _save();
       notifyListeners();
     }
-  }
-
-  Future<void> receive(
-    String name,
-    String text,
-  ) async {
-    final c = byName(name);
-    if (c == null) return;
-    c.messages.add(ChatMessage(from: 'them', text: text));
-    await _save();
-    notifyListeners();
-  }
-
-  String randomReply({required bool withImage}) {
-    const replies = [
-      'تمام، استلمت رسالتك 👍',
-      'حاضر، أنا متواجد حالياً.',
-      'حسناً، سأراجع الأمر وأرد عليك خلال وقت قصير.',
-      'ممكن نتفق على التفاصيل بشكل أدق؟',
-      'يسعدني التعامل معك، سأجهز لك كل شيء.',
-    ];
-    const imgReplies = [
-      'وصلتني الصورة، تبدو رائعة 👌',
-      'شكراً على الصورة، تمام معي.',
-      'الصورة واضحة، سأتابع معك قريباً.',
-      'تسلمت الصورة، لي رجعة بعد معاينتها.',
-    ];
-    final pool = withImage ? imgReplies : replies;
-    return pool[DateTime.now().millisecondsSinceEpoch % pool.length];
   }
 
   Future<void> _save() {

@@ -147,6 +147,7 @@ def init_db():
             sender_uid TEXT NOT NULL,
             text TEXT NOT NULL DEFAULT '',
             img TEXT,
+            audio TEXT,
             time TEXT NOT NULL,
             read_a INTEGER NOT NULL DEFAULT 1,
             read_b INTEGER NOT NULL DEFAULT 1
@@ -203,6 +204,11 @@ def init_db():
             pass
     try:
         conn.execute("ALTER TABLE users ADD COLUMN photo TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE messages ADD COLUMN audio TEXT")
         conn.commit()
     except sqlite3.OperationalError:
         pass
@@ -365,6 +371,11 @@ class OrderStatusIn(BaseModel):
 class MessageIn(BaseModel):
     text: str = ""
     img: Optional[str] = None
+    audio: Optional[str] = None
+
+
+class ChatOpenIn(BaseModel):
+    peerName: str
 
 
 class MediaIn(BaseModel):
@@ -498,10 +509,17 @@ def _order_json(row: sqlite3.Row) -> dict:
 
 
 def _message_json(row: sqlite3.Row, me: str) -> dict:
+    is_mine = row["sender_uid"] == me
+    read = True
+    if is_mine:
+        read = row["read_a"] if me == row["uid_b"] else row["read_b"]
     return {
-        "from": "me" if row["sender_uid"] == me else "them",
+        "id": row["id"],
+        "from": "me" if is_mine else "them",
         "text": row["text"],
         "img": row["img"],
+        "audio": row["audio"],
+        "read": bool(read),
         "time": row["time"],
     }
 
@@ -522,6 +540,7 @@ def _conversation_json(peer: sqlite3.Row, me: str, conn: sqlite3.Connection) -> 
     return {
         "id": peer["uid"],
         "name": peer["name"],
+        "photo": peer["photo"],
         "role": _role_for(peer["user_type"]),
         "iconKey": _avatar_for(peer["user_type"]),
         "unread": unread,
@@ -1190,9 +1209,9 @@ def get_chat(peer_uid: str, user: sqlite3.Row = Depends(_require_user)):
 
 
 @app.post("/api/chats/open")
-def open_chat(peerName: str, user: sqlite3.Row = Depends(_require_user)):
+def open_chat(body: ChatOpenIn, user: sqlite3.Row = Depends(_require_user)):
     conn = db()
-    peer = conn.execute("SELECT * FROM users WHERE name = ?", (peerName,)).fetchone()
+    peer = conn.execute("SELECT * FROM users WHERE name = ?", (body.peerName,)).fetchone()
     if peer is None or peer["uid"] == user["uid"]:
         conn.close()
         raise HTTPException(status_code=404, detail="المستخدم غير موجود")
@@ -1219,8 +1238,8 @@ def send_message(peer_uid: str, body: MessageIn, user: sqlite3.Row = Depends(_re
     else:
         read_a, read_b = 0, 1
     conn.execute(
-        "INSERT INTO messages (id, uid_a, uid_b, sender_uid, text, img, time, read_a, read_b) VALUES (?,?,?,?,?,?,?,?,?)",
-        (mid, a, b, user["uid"], body.text, body.img, utcnow(), read_a, read_b),
+        "INSERT INTO messages (id, uid_a, uid_b, sender_uid, text, img, audio, time, read_a, read_b) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        (mid, a, b, user["uid"], body.text, body.img, body.audio, utcnow(), read_a, read_b),
     )
     _add_notification(conn, peer_uid, "message", "رسالة جديدة", f"{user['name']}: {body.text[:60]}")
     conn.commit()
