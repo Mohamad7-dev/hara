@@ -7,6 +7,7 @@ import '../../models/order_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../widgets/page_header.dart';
+import '../../widgets/hara_loader.dart';
 
 class OrderScreen extends StatefulWidget {
   const OrderScreen({super.key});
@@ -85,7 +86,7 @@ class _OrderScreenState extends State<OrderScreen> {
           ),
           Expanded(
             child: orderProvider.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: HaraLoader())
                 : orderProvider.orders.isEmpty
                     ? Center(
                         child: Column(

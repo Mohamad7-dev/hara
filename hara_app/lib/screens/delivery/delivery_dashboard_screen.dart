@@ -5,6 +5,7 @@ import '../../models/order_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../widgets/page_header.dart';
+import '../../widgets/hara_loader.dart';
 
 class DeliveryDashboardScreen extends StatefulWidget {
   const DeliveryDashboardScreen({super.key});
@@ -90,7 +91,7 @@ class _DeliveryDashboardScreenState extends State<DeliveryDashboardScreen> {
           ),
           Expanded(
             child: orderProvider.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: HaraLoader())
                 : Column(
                     children: [
                       Container(

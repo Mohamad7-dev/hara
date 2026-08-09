@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/notifications_provider.dart';
 import '../../providers/order_provider.dart';
+import '../../widgets/hara_loader.dart';
 import '../../providers/product_provider.dart';
 import '../../models/order_model.dart';
 import '../../widgets/page_header.dart';
@@ -197,7 +198,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(color: AppColors.primary),
+              const HaraLoader(size: 44),
               SizedBox(height: 16),
               Text('بانتظار تأكيد الدفع...',
                   style: TextStyle(color: Colors.white, fontSize: 15)),
@@ -462,11 +463,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: ElevatedButton(
                       onPressed: _placing ? null : _placeOrder,
                       child: _placing
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
+                          ? const HaraLoader(size: 22)
                           : const Text('تأكيد الطلب',
                               style: TextStyle(fontSize: 16)),
                     ),
@@ -543,11 +540,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (_loadingOffers)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-                child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2))),
+            child: Center(child: HaraLoader(size: 22)),
           )
         else if (_selectedArea.isEmpty)
           _deliveryHint('اختر مدينتك من القائمة ليظهر لك الموصلون المتاحون فيها')

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../config/colors.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/hara_loader.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -87,13 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             icon: auth.isLoading
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2.2,
-                                        color: AppColors.primary),
-                                  )
+                                ? const HaraLoader(size: 22)
                                 : const _GoogleLogo(size: 22),
                             label: Text(
                               auth.isLoading

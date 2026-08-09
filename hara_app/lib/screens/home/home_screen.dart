@@ -8,7 +8,7 @@ import '../../config/constants.dart';
 import '../../config/locations.dart';
 import '../../services/api_client.dart';
 import '../../services/payment_service.dart';
-import '../../providers/auth_provider.dart';
+import '../../widgets/hara_loader.dart';import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/chat_provider.dart';
@@ -370,7 +370,8 @@ class _HomeScreenState extends State<HomeScreen> {
         SliverToBoxAdapter(child: _postsSection(context)),
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
           productProvider.isLoading
-              ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+              ? const SliverFillRemaining(
+                  child: Center(child: HaraLoader(size: 72)))
               : productProvider.products.isEmpty
                   ? SliverFillRemaining(
                       hasScrollBody: false,
@@ -1178,12 +1179,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             }
                           },
                     child: _paying || _uploading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
+                        ? const HaraLoader(size: 22)
                         : const Text('إضافة المنتج', style: TextStyle(fontSize: 16)),
                   ),
                 ),

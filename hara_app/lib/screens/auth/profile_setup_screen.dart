@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../config/colors.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/hara_loader.dart';
 import '../../services/api_client.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -269,12 +270,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           ? null
                           : _save,
                       child: auth.isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
+                          ? const HaraLoader(size: 22)
                           : const Text(
                               'حفظ والمتابعة',
                               style: TextStyle(
@@ -294,7 +290,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Widget _buildAvatar() {
     if (_uploadingPhoto) {
       return const Center(
-        child: CircularProgressIndicator(strokeWidth: 2),
+        child: HaraLoader(size: 40),
       );
     }
     final p = _photo;
