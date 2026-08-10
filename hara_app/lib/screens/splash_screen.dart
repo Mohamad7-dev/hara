@@ -41,40 +41,39 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _splashBg,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/splash_anim.gif',
-            fit: BoxFit.cover,
-            gaplessPlayback: true,
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 44,
-            child: Column(
-              children: [
-                const Text(
-                  AppConstants.appName,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  AppConstants.appTagline,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.7),
-                  ),
-                ),
-              ],
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Image.asset(
+                'assets/splash_anim.gif',
+                width: 112,
+                height: 112,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            const Text(
+              AppConstants.appName,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              AppConstants.appTagline,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

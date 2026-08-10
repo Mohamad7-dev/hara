@@ -253,6 +253,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Container(
             width: 92,
             height: 92,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(26),
@@ -264,20 +265,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-            child: const Icon(Icons.storefront_rounded,
-                color: AppColors.primary, size: 48),
+            child: Image.asset('assets/app_icon.png', fit: BoxFit.contain),
           ),
           const SizedBox(height: 18),
-          const Text(
-            AppConstants.appName,
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 0.5,
-            ),
+          Image.asset(
+            'assets/logo_banner.png',
+            width: 240,
+            fit: BoxFit.contain,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             AppConstants.appTagline,
             style: const TextStyle(

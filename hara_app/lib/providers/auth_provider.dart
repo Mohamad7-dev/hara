@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../services/api_client.dart';
@@ -116,8 +117,12 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
-    } catch (_) {
-      _error = 'تعذر تسجيل الدخول عبر جوجل';
+    } catch (e) {
+      String detail = '';
+      if (e is PlatformException) {
+        detail = ' [رمز ${e.code}]';
+      }
+      _error = 'تعذر تسجيل الدخول عبر جوجل$detail';
       _isLoading = false;
       notifyListeners();
       return false;
