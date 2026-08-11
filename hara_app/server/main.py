@@ -4,6 +4,7 @@ import json
 import os
 import secrets
 import sqlite3
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -81,6 +82,7 @@ def init_db():
             vehicle_type TEXT,
             rating REAL DEFAULT 0,
             rating_count INTEGER DEFAULT 0,
+            phone_verified INTEGER DEFAULT 0,
             is_active INTEGER DEFAULT 1,
             created_at TEXT NOT NULL
         );
@@ -208,6 +210,11 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     try:
+        conn.execute("ALTER TABLE users ADD COLUMN phone_verified INTEGER DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
         conn.execute("ALTER TABLE messages ADD COLUMN audio TEXT")
         conn.commit()
     except sqlite3.OperationalError:
@@ -250,6 +257,7 @@ def _user_json(row: sqlite3.Row) -> dict:
         "vehicleType": row["vehicle_type"],
         "rating": row["rating"],
         "ratingCount": row["rating_count"],
+        "phoneVerified": bool(row["phone_verified"]),
         "isActive": bool(row["is_active"]),
         "createdAt": row["created_at"],
     }
@@ -675,8 +683,9 @@ def update_profile(body: ProfileIn, user: sqlite3.Row = Depends(_require_user)):
     vals = []
     if body.name is not None:
         fields.append("name = ?"); vals.append(body.name)
-    if body.phone is not None:
+    if body.phone is not None and body.phone != user["phone"]:
         fields.append("phone = ?"); vals.append(body.phone)
+        fields.append("phone_verified = ?"); vals.append(0)
     if body.photo is not None:
         fields.append("photo = ?"); vals.append(body.photo)
     if body.area is not None:
@@ -693,6 +702,50 @@ def update_profile(body: ProfileIn, user: sqlite3.Row = Depends(_require_user)):
         vals.append(user["uid"])
         conn.execute(f"UPDATE users SET {', '.join(fields)} WHERE uid = ?", vals)
         conn.commit()
+    row = conn.execute("SELECT * FROM users WHERE uid = ?", (user["uid"],)).fetchone()
+    conn.close()
+    return {"user": _user_json(row)}
+
+
+class SendCodeIn(BaseModel):
+    phone: str
+
+
+class VerifyCodeIn(BaseModel):
+    phone: str
+    code: str
+
+
+_sms_codes: dict = {}
+
+
+def _phone_ok(phone: str) -> bool:
+    return len("".join(ch for ch in phone if ch.isdigit())) >= 9
+
+
+@app.post("/api/auth/send-code")
+def send_code(body: SendCodeIn, user: sqlite3.Row = Depends(_require_user)):
+    if not _phone_ok(body.phone):
+        raise HTTPException(status_code=400, detail="رقم الجوال غير صحيح")
+    code = str(secrets.randbelow(1000000)).zfill(6)
+    _sms_codes[body.phone] = (code, time.time() + 300)
+    return {"ok": True, "expiresIn": 300, "debugCode": code if GATEWAY == "simulation" else None}
+
+
+@app.post("/api/auth/verify-code")
+def verify_code(body: VerifyCodeIn, user: sqlite3.Row = Depends(_require_user)):
+    entry = _sms_codes.get(body.phone)
+    if not entry or entry[1] < time.time():
+        raise HTTPException(status_code=400, detail="انتهت صلاحية الرمز، أرسل رمزاً جديداً")
+    if entry[0] != body.code.strip():
+        raise HTTPException(status_code=400, detail="الرمز غير صحيح")
+    _sms_codes.pop(body.phone, None)
+    conn = db()
+    conn.execute(
+        "UPDATE users SET phone = ?, phone_verified = 1 WHERE uid = ?",
+        (body.phone, user["uid"]),
+    )
+    conn.commit()
     row = conn.execute("SELECT * FROM users WHERE uid = ?", (user["uid"],)).fetchone()
     conn.close()
     return {"user": _user_json(row)}

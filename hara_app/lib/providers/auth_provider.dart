@@ -129,6 +129,52 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<String?> sendCode(String phone) async {
+    final u = _currentUser;
+    if (u == null) return null;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final res = await ApiClient.instance.post('api/auth/send-code', {'phone': phone});
+      _online = true;
+      _isLoading = false;
+      notifyListeners();
+      return res['debugCode'] as String?;
+    } on ApiException catch (e) {
+      _error = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> verifyCode(String phone, String code) async {
+    final u = _currentUser;
+    if (u == null) return false;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final res = await ApiClient.instance.post('api/auth/verify-code', {
+        'phone': phone,
+        'code': code,
+      });
+      _online = true;
+      final user = res['user'] as Map<String, dynamic>;
+      _currentUser = UserModel.fromMap(user, user['uid'] ?? '');
+      await _saveSession();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _error = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> updateProfile({
     String? name,
     String? phone,

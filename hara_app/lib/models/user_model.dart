@@ -14,6 +14,7 @@ class UserModel {
   final String? vehicleType;
   final double rating;
   final int ratingCount;
+  final bool phoneVerified;
   final bool isActive;
   final DateTime createdAt;
 
@@ -33,6 +34,7 @@ class UserModel {
     this.vehicleType,
     this.rating = 0,
     this.ratingCount = 0,
+    this.phoneVerified = false,
     this.isActive = true,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -53,6 +55,7 @@ class UserModel {
     'vehicleType': vehicleType,
     'rating': rating,
     'ratingCount': ratingCount,
+    'phoneVerified': phoneVerified,
     'isActive': isActive,
     'createdAt': createdAt.toIso8601String(),
   };
@@ -73,6 +76,7 @@ class UserModel {
     vehicleType: map['vehicleType'],
     rating: (map['rating'] as num?)?.toDouble() ?? 0,
     ratingCount: map['ratingCount'] ?? 0,
+    phoneVerified: map['phoneVerified'] ?? false,
     isActive: map['isActive'] ?? true,
     createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
   );

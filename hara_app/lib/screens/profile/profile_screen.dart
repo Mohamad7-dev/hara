@@ -195,6 +195,15 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 _menuCard(
                   context,
+                  Icons.edit_outlined,
+                  'تعديل الملف الشخصي',
+                  user.phoneVerified
+                      ? 'الصورة، الاسم، ورقم الجوال — الرقم موثّق'
+                      : 'الصورة، الاسم، ورقم الجوال — وفعّل توثيق الرقم',
+                  () => Navigator.of(context).pushNamed('/profile-setup'),
+                ),
+                _menuCard(
+                  context,
                   Icons.receipt_long_outlined,
                   'طلباتي',
                   'تتبّع طلباتي وحالتها',

@@ -22,8 +22,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _form = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _phone;
+  final _code = TextEditingController();
   String? _photo;
   bool _uploadingPhoto = false;
+  bool _isEdit = false;
+  bool _codeSent = false;
+  bool _codeSending = false;
 
   @override
   void initState() {
@@ -32,12 +36,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _name = TextEditingController(text: u?.name ?? '');
     _phone = TextEditingController(text: u?.phone ?? '');
     _photo = u?.photo;
+    _isEdit = (u?.name.isNotEmpty ?? false) && (u?.phone.isNotEmpty ?? false);
   }
 
   @override
   void dispose() {
     _name.dispose();
     _phone.dispose();
+    _code.dispose();
     super.dispose();
   }
 
@@ -116,7 +122,51 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
     if (!mounted) return;
     if (ok) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      if (_isEdit) {
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+    }
+  }
+
+  Future<void> _sendCode() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _codeSending = true);
+    final auth = context.read<AuthProvider>();
+    final debugCode = await auth.sendCode(_phone.text.trim());
+    if (!mounted) return;
+    setState(() {
+      _codeSending = false;
+      _codeSent = true;
+    });
+    if (debugCode != null && debugCode.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('رمز التحقق التجريبي: $debugCode')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إرسال رمز التحقق عبر SMS')),
+      );
+    }
+  }
+
+  Future<void> _verifyCode() async {
+    final t = _code.text.trim();
+    if (t.length < 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أدخل الرمز المرسل')),
+      );
+      return;
+    }
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.verifyCode(_phone.text.trim(), t);
+    if (!mounted) return;
+    if (ok) {
+      setState(() => _codeSent = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم التحقق من رقم الجوال بنجاح')),
+      );
     }
   }
 
@@ -124,8 +174,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('أكمل ملفك الشخصي'),
-        automaticallyImplyLeading: false,
+        title: Text(_isEdit ? 'تعديل الملف الشخصي' : 'أكمل ملفك الشخصي'),
+        automaticallyImplyLeading: _isEdit,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -220,21 +270,110 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   },
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Icon(Icons.info_outline,
-                        size: 15, color: AppColors.textSecondary),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'التحقق من رقم الجوال برسالة SMS سيتفعّل لاحقاً. الرقم يُستخدم لإيصال مشترياتك.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) {
+                    final verified = auth.currentUser?.phoneVerified == true &&
+                        auth.currentUser?.phone == _phone.text.trim();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (verified)
+                          Row(
+                            children: [
+                              const Icon(Icons.verified_user,
+                                  size: 17, color: AppColors.success),
+                              const SizedBox(width: 6),
+                              const Expanded(
+                                child: Text(
+                                  'تم التحقق من رقم الجوال',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.success,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else ...[
+                          Row(
+                            children: [
+                              const Icon(Icons.info_outline,
+                                  size: 15, color: AppColors.textSecondary),
+                              const SizedBox(width: 6),
+                              const Expanded(
+                                child: Text(
+                                  'يُستخدم الرقم لإيصال مشترياتك وتأكيد هويتك. سنرسل لك رمزاً عبر SMS للتحقق.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: (_codeSending || auth.isLoading)
+                                ? null
+                                : _sendCode,
+                            icon: _codeSending
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.sms_outlined, size: 18),
+                            label: Text(_codeSent
+                                ? 'إعادة إرسال الرمز'
+                                : 'إرسال رمز التحقق'),
+                          ),
+                          if (_codeSent) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _code,
+                                    keyboardType: TextInputType.number,
+                                    maxLength: 6,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                    decoration: const InputDecoration(
+                                      labelText: 'رمز التحقق',
+                                      hintText: '6 أرقام',
+                                      prefixIcon:
+                                          Icon(Icons.password_outlined),
+                                      counterText: '',
+                                    ),
+                                    onFieldSubmitted: (_) => _verifyCode(),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                ElevatedButton(
+                                  onPressed: auth.isLoading ? null : _verifyCode,
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 18, vertical: 16),
+                                  ),
+                                  child: auth.isLoading
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white),
+                                        )
+                                      : const Text('تأكيد'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 28),
                 Consumer<AuthProvider>(
@@ -271,9 +410,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           : _save,
                       child: auth.isLoading
                           ? const HaraLoader(size: 22)
-                          : const Text(
-                              'حفظ والمتابعة',
-                              style: TextStyle(
+                          : Text(
+                              _isEdit ? 'حفظ التغييرات' : 'حفظ والمتابعة',
+                              style: const TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                     ),
