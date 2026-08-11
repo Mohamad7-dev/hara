@@ -635,7 +635,7 @@ def google_auth(body: GoogleAuthIn):
     info = r.json()
     if GOOGLE_CLIENT_ID and info.get("aud") != GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=401, detail="توكن جوجل غير صالح")
-    if info.get("email_verified") is not True:
+    if str(info.get("email_verified", "")).lower() not in ("true", "1"):
         raise HTTPException(status_code=401, detail="البريد الإلكتروني غير موثق")
     email = info.get("email")
     sub = info.get("sub")
