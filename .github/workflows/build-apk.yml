@@ -51,7 +51,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: flutter build apk --release --split-per-abi --dart-define=API_BASE=https://hara-api.onrender.com --dart-define=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+        run: flutter build apk --release --split-per-abi --dart-define=API_BASE=https://hara-api.onrender.com --dart-define=GOOGLE_CLIENT_ID=272031745698-9bnqslh5j67c27m92q9n88j4pp1f7m44.apps.googleusercontent.com
 
       - name: Build universal APK
         working-directory: hara_app
@@ -60,7 +60,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: flutter build apk --release --dart-define=API_BASE=https://hara-api.onrender.com --dart-define=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+        run: flutter build apk --release --dart-define=API_BASE=https://hara-api.onrender.com --dart-define=GOOGLE_CLIENT_ID=272031745698-9bnqslh5j67c27m92q9n88j4pp1f7m44.apps.googleusercontent.com
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
