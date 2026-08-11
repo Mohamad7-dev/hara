@@ -1,0 +1,13 @@
+name: Keep Render awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping hara-api health
+        run: curl -fsS https://hara-api.onrender.com/api/health || true

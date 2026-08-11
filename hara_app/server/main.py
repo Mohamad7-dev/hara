@@ -626,7 +626,7 @@ def google_auth(body: GoogleAuthIn):
         r = requests.get(
             "https://oauth2.googleapis.com/tokeninfo",
             params={"id_token": body.idToken},
-            timeout=10,
+            timeout=20,
         )
     except Exception:
         raise HTTPException(status_code=502, detail="تعذر الاتصال بجوجل")
