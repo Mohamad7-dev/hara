@@ -327,10 +327,19 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: messages.isEmpty
                 ? Center(
-                    child: Text(
-                      'ابدأ المحادثة — قل مرحباً 👋',
-                      style: TextStyle(
-                          fontSize: 14, color: AppColors.textMuted),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.forum_outlined,
+                            size: 44, color: AppColors.textMuted),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'ابدأ المحادثة — قل مرحباً',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 14, color: AppColors.textMuted),
+                        ),
+                      ],
                     ),
                   )
                 : ListView.builder(

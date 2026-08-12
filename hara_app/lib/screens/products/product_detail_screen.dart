@@ -49,7 +49,7 @@ class ProductDetailScreen extends StatelessWidget {
               height: 280,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.2),
+                color: AppColors.secondary.withValues(alpha: 0.2),
               ),
               child: _headerImage,
             ),
@@ -67,7 +67,7 @@ class ProductDetailScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.accent.withOpacity(0.1),
+                          color: AppColors.accent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(product.category, style: const TextStyle(color: AppColors.accent)),
@@ -299,7 +299,7 @@ class ProductDetailScreen extends StatelessWidget {
 
   Widget get _headerPlaceholder => Center(
         child: Icon(Icons.image_outlined,
-            size: 80, color: AppColors.primary.withOpacity(0.3)),
+            size: 80, color: AppColors.primary.withValues(alpha: 0.3)),
       );
 
   Widget _addReviewButton(BuildContext context) {

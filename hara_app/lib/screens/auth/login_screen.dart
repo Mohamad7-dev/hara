@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         BorderRadius.circular(AppConstants.borderRadiusLarge),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.10),
+                        color: AppColors.primary.withValues(alpha: 0.10),
                         blurRadius: 30,
                         offset: const Offset(0, 12),
                       ),
@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     children: [
                       const Text(
-                        'أهلاً بيك في حارتك 👋',
+                        'أهلاً بيك في حارتك',
                         style: TextStyle(
                           fontSize: 21,
                           fontWeight: FontWeight.bold,
@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'سجّل بحساب جوجل وابدا التسوق والتواصل\nمع أهل حيّك',
+                        'سجّل بحساب جوجل وابدأ التسوق والتواصل\nمع أهل حيّك',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13.5,
@@ -178,9 +178,9 @@ class _LoginScreenState extends State<LoginScreen> {
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.error.withOpacity(0.08),
+            color: AppColors.error.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.error.withOpacity(0.25)),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
           ),
           child: Row(
             children: [
@@ -239,47 +239,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildHero() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(top: 40, bottom: 56),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryDark],
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(34)),
-      ),
+      padding: const EdgeInsets.only(top: 56, bottom: 76),
+      color: AppColors.chocolate,
       child: Column(
         children: [
-          Container(
-            width: 92,
-            height: 92,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Image.asset('assets/app_icon.png', fit: BoxFit.contain),
-          ),
-          const SizedBox(height: 18),
           Image.asset(
-            'assets/logo_banner.png',
-            width: 240,
+            'assets/logo_white.png',
+            height: 62,
             fit: BoxFit.contain,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AppConstants.appTagline,
-            style: const TextStyle(
-              fontSize: 14.5,
-              color: Color(0xFFE8DECC),
-            ),
           ),
         ],
       ),

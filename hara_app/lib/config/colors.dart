@@ -8,6 +8,10 @@ class AppColors {
   static const Color primaryDark = Color(0xFF2B1D13);
   static const Color primaryDeep = Color(0xFF241710);
 
+  static const Color chocolate = Color(0xFF2C2421);
+  static const Color chocolateDeep = Color(0xFF231B18);
+  static const Color logoGold = Color(0xFFC9A45C);
+
   static const Color accent = Color(0xFFA9823C);
   static const Color accent2 = Color(0xFF8F6B2C);
   static const Color accent3 = Color(0xFFC29B55);

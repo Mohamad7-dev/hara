@@ -2,10 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../config/constants.dart';
+import '../config/colors.dart';
 import '../providers/auth_provider.dart';
-
-const Color _splashBg = Color(0xFF29201C);
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,8 +12,12 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  bool _ready = false;
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  )..forward();
 
   @override
   void initState() {
@@ -23,8 +25,14 @@ class _SplashScreenState extends State<SplashScreen> {
     _boot();
   }
 
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
   Future<void> _boot() async {
-    await Future.delayed(const Duration(milliseconds: 3000));
+    await Future.delayed(const Duration(milliseconds: 2200));
     if (!mounted) return;
     final auth = context.read<AuthProvider>();
     final u = auth.currentUser;
@@ -40,39 +48,30 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _splashBg,
+      backgroundColor: AppColors.chocolate,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Image.asset(
-                'assets/splash_anim.gif',
-                width: 112,
-                height: 112,
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
+        child: FadeTransition(
+          opacity: _fade,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/logo_white.png',
+                height: 92,
+                fit: BoxFit.contain,
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              AppConstants.appName,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              const SizedBox(height: 26),
+              const Text(
+                'كل ما تحتاجه في منطقتك',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              AppConstants.appTagline,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.white.withOpacity(0.7),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

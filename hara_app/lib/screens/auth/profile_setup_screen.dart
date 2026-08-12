@@ -200,7 +200,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               color: AppColors.primary, width: 2.5),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.2),
+                              color: AppColors.primary.withValues(alpha: 0.2),
                               blurRadius: 18,
                               offset: const Offset(0, 6),
                             ),
@@ -451,7 +451,7 @@ class _AvatarFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.primary.withOpacity(0.08),
+      color: AppColors.primary.withValues(alpha: 0.08),
       child: const Icon(Icons.person, size: 52, color: AppColors.primary),
     );
   }

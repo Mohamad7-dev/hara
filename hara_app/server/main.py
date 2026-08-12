@@ -285,6 +285,19 @@ def _require_user(authorization: Optional[str] = Header(None)) -> sqlite3.Row:
     return row
 
 
+def _optional_user(authorization: Optional[str] = Header(None)) -> Optional[sqlite3.Row]:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization.split(" ", 1)[1].strip()
+    conn = db()
+    row = conn.execute(
+        "SELECT u.* FROM users u JOIN tokens t ON t.uid = u.uid WHERE t.token = ?",
+        (token,),
+    ).fetchone()
+    conn.close()
+    return row
+
+
 # ---------------------------------------------------------------- request models
 
 class RegisterIn(BaseModel):
@@ -832,7 +845,7 @@ def add_review(pid: str, rating: int = Query(5), user: sqlite3.Row = Depends(_re
 # ---------------------------------------------------------------- posts
 
 @app.get("/api/posts")
-def list_posts(user: Optional[sqlite3.Row] = Depends(_require_user)):
+def list_posts(user: Optional[sqlite3.Row] = Depends(_optional_user)):
     viewer = user["uid"] if user else None
     conn = db()
     rows = conn.execute("SELECT * FROM posts ORDER BY time DESC").fetchall()
@@ -1286,6 +1299,7 @@ def send_message(peer_uid: str, body: MessageIn, user: sqlite3.Row = Depends(_re
         raise HTTPException(status_code=404, detail="المستخدم غير موجود")
     a, b = sorted([user["uid"], peer_uid])
     mid = "m" + uuid.uuid4().hex[:14]
+    _open_conversation(conn, user["uid"], peer)
     if user["uid"] == a:
         read_a, read_b = 1, 0
     else:
